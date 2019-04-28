@@ -1,0 +1,17 @@
+{
+  "name": "sound-of-science-rfid",
+  "version": "1.0.0",
+  "description": "RFID reader for Sound of Science Nucleus",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Siebe Vanden Eynden <siebe.vandeneynden@nucleus.be>",
+  "license": "propriety",
+  "dependencies": {
+    "http": "0.0.0",
+    "https": "^1.0.0",
+    "querystring": "^0.2.0",
+    "serialport": "^7.1.5"
+  }
+}
