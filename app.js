@@ -14,26 +14,27 @@ function readSerialData(data) {
 }
 
 function getConnectedArduino() {
-SerialPort.list(function(err, ports) {
-    var allports = ports.length;
-    var count = 0;
-    var done = false
-    ports.forEach(function(port) {
-    count += 1;
-    pm = port['manufacturer'];
-    if (typeof pm !== 'undefined' && pm.includes('arduino')) {
-        arduinoport = port.comName.toString();
-        done = true;
-        startListeningRfid();
-    }
-    if (count === allports && done === false) {
-        console.log('cant find arduino')
-    }
+    SerialPort.list(function(err, ports) {
+        var allports = ports.length;
+        var count = 0;
+        var done = false
+        ports.forEach(function(port) {
+            count += 1;
+            pm = port['manufacturer'];
+            if (typeof pm !== 'undefined' && pm.includes('arduino')) {
+                comPort = port.comName.toString();
+                console.log('Found arduino on port: '+comPort),
+                
+                done = true;
+                startListeningRfid();
+            }
+            if (count === allports && done === false) {
+                console.log('cant find arduino')
+            }
+        });
+    
     });
-
-});
 }
-getConnectedArduino();
 
 function startListeningRfid() {
     const port = new SerialPort(comPort, () => {
@@ -50,3 +51,5 @@ function startListeningRfid() {
     
     parser.on('data', readSerialData);
 }
+
+getConnectedArduino();
