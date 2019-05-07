@@ -14,8 +14,8 @@ function readSerialData(data) {
 
     console.log('Reader: ' + reader);
     console.log('cardId: ' + cardId);
-    
-    if (readers[reader] !== cardId) {
+
+    if (!readers.hasOwnProperty(reader) || readers[reader] !== cardId) {
         readers[reader] = cardId;
 
         sendUpdate();
