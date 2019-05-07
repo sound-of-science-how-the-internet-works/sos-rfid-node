@@ -1,98 +1,96 @@
 let comPort;
-const url = 'http://10.0.1.110:3030/states?panel=desktop';
 const SerialPort = require('serialport');
 const http = require('http');
 
 const readers = [];
+
 function readSerialData(data) {
     const parts = data.split('  ');
     const reader = parts[0];
     let cardId = '';
     if (parts.length === 2) {
-        cardId = parts[1];
+        cardId = parts[1].trim();
     }
-	if(cardId === ''){
-		console.log('skip');
-		return;
-	}
 
     console.log('Reader: ' + reader);
     console.log('cardId: ' + cardId);
-    if(readers[reader] !== cardId){
-        readers[reader] = cardId.trim();
-	sendUpdate();
+    
+    if (readers[reader] !== cardId) {
+        readers[reader] = cardId;
+
+        sendUpdate();
     }
 }
 
-function sendUpdate(){
-const data = JSON.stringify(buildData());
+function sendUpdate() {
+    const data = JSON.stringify(buildData());
 
-const options = {
-	  hostname: '10.0.1.110',
-	  port: 3030,
-	  path: '/states?panel=desktop',
-	  method: 'PATCH',
-	  headers: {
-		      'Content-Type': 'application/json',
-		      'Content-Length': data.length
-		    }
+    const options = {
+        hostname: '10.0.1.110',
+        port: 3030,
+        path: '/states?panel=desktop',
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': data.length
+        }
+    };
+    const req = http.request(options, (res) => {
+        console.log(`statusCode: ${res.statusCode}`);
+
+        res.on('data', (d) => {
+            process.stdout.write(d);
+        });
+    });
+
+    req.on('error', (error) => {
+        console.error(error);
+    });
+
+    req.write(data);
+    req.end();
 }
-const req = http.request(options, (res) => {
-	  console.log(`statusCode: ${res.statusCode}`)
 
-	  res.on('data', (d) => {
-		      process.stdout.write(d)
-		    })
-})
+function buildData() {
+    const rfidMap = {
+        "60110414133": "nucleus",
+        "810814414133": "be",
+        "14786414133": "https://"
+    };
 
-req.on('error', (error) => {
-	  console.error(error)
-})
+    const readerMap = [
+        'scheme',
+        'domain',
+        'tld'
+    ];
 
-req.write(data)
-req.end()
-}
+    const data = {};
 
-function buildData(){
-const rfidMap = {
-	"60110414133": "nucleus",
-	"810814414133": "be",
-	"14786414133": "https://"
-}
-const readerMap = [
-'scheme',
-	'domain',
-	'tld'
-];
+    Object.entries(readers).forEach(entry => {
+        let key = entry[0];
+        let value = String(entry[1]);
+        data[readerMap[key]] = rfidMap[value];
+    });
 
-const data = {};
-
-Object.entries(readers).forEach(entry => {
-	  let key = entry[0];
-	  let value = String(entry[1]);
-	data[readerMap[key]] = rfidMap[value];
-});
-
-return data;
+    return data;
 }
 
 function getConnectedArduino() {
-    SerialPort.list(function(err, ports) {
+    SerialPort.list(function (err, ports) {
         var allports = ports.length;
         var count = 0;
-        var done = false
-        ports.forEach(function(port) {
+        var done = false;
+        ports.forEach(function (port) {
             count += 1;
             pm = port['manufacturer'];
             if (typeof pm !== 'undefined' && pm.includes('arduino')) {
                 comPort = port.comName.toString();
-                console.log('Found arduino on port: '+comPort),
-
+                console.log('Found arduino on port: ' + comPort);
                 done = true;
                 startListeningRfid();
             }
             if (count === allports && done === false) {
-                console.log('cant find arduino')
+                console.log('cant find arduino');
             }
         });
 
