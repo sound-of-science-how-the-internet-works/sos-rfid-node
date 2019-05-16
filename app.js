@@ -6,10 +6,14 @@ const readers = [];
 
 function readSerialData(data) {
     const parts = data.split('  ');
-    const reader = parts[0];
+    const reader = parts[0].trim();
     let cardId = '';
     if (parts.length === 2) {
         cardId = parts[1].trim();
+    }
+
+    if (reader === undefined || reader === '' || cardId === undefined) {
+        return;
     }
 
     console.log('Reader: ' + reader);
@@ -23,10 +27,12 @@ function readSerialData(data) {
 }
 
 function sendUpdate() {
-    const data = JSON.stringify(buildData());
+    let data = buildData();
+    console.log(data);
+    data = JSON.stringify(data);
 
     const options = {
-        hostname: '10.0.1.110',
+        hostname: '10.0.1.14',
         port: 3030,
         path: '/states?panel=desktop',
         method: 'PATCH',
@@ -55,11 +61,14 @@ function buildData() {
     const rfidMap = {
         "60110414133": "nucleus",
         "810814414133": "be",
-        "14786414133": "https://"
+        "14786414133": "https://",
+        "11141414133": "www",
+        "21337412133": "combell"
     };
 
     const readerMap = [
         'scheme',
+        'subdomain',
         'domain',
         'tld'
     ];
@@ -69,7 +78,9 @@ function buildData() {
     Object.entries(readers).forEach(entry => {
         let key = entry[0];
         let value = String(entry[1]);
-        data[readerMap[key]] = rfidMap[value];
+        if (readerMap.hasOwnProperty(key)) {
+            data[readerMap[key]] = rfidMap.hasOwnProperty(value) ? rfidMap[value] : '';
+        }
     });
 
     return data;
