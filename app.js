@@ -2,6 +2,8 @@ let comPort;
 const SerialPort = require('serialport');
 const http = require('http');
 
+const debug = false;
+
 const readers = [];
 
 function readSerialData(data) {
@@ -16,8 +18,11 @@ function readSerialData(data) {
         return;
     }
 
-    console.log('Reader: ' + reader);
-    console.log('cardId: ' + cardId);
+    if (debug) {
+        console.log('Reader: ' + reader);
+        console.log('cardId: ' + cardId);
+    }
+
 
     if (!readers.hasOwnProperty(reader) || readers[reader] !== cardId) {
         readers[reader] = cardId;
@@ -32,9 +37,9 @@ function sendUpdate() {
     data = JSON.stringify(data);
 
     const options = {
-        hostname: '10.0.1.14',
+        hostname: '192.168.0.11',
         port: 3030,
-        path: '/states?panel=desktop',
+        path: '/states?panel=browser',
         method: 'PATCH',
         headers: {
             'Content-Type': 'application/json',
@@ -42,10 +47,8 @@ function sendUpdate() {
         }
     };
     const req = http.request(options, (res) => {
-        console.log(`statusCode: ${res.statusCode}`);
-
         res.on('data', (d) => {
-            process.stdout.write(d);
+            //process.stdout.write(d);
         });
     });
 
@@ -58,12 +61,29 @@ function sendUpdate() {
 }
 
 function buildData() {
+    const map = {
+        'scheme': [
+            'https://',
+            'http://',
+        ],
+        'subdomain': [
+            'www'
+        ],
+        'domain': [
+            'soundofscience',
+            'nucleus',
+        ],
+        'tld': [
+            'be'
+        ],
+    };
     const rfidMap = {
-        "60110414133": "nucleus",
-        "810814414133": "be",
         "14786414133": "https://",
-        "11141414133": "www",
-        "21337412133": "combell"
+        "880432714": "http://",
+        "21337412133": "www",
+        "60110414133": "soundofscience",
+        "810814414133": "nucleus",
+        "11141414133": "be",
     };
 
     const readerMap = [
@@ -73,7 +93,9 @@ function buildData() {
         'tld'
     ];
 
-    const data = {};
+    const data = {
+        'valid': false
+    };
 
     Object.entries(readers).forEach(entry => {
         let key = entry[0];
@@ -82,6 +104,12 @@ function buildData() {
             data[readerMap[key]] = rfidMap.hasOwnProperty(value) ? rfidMap[value] : '';
         }
     });
+
+    console.log('ok ');
+    if (map.scheme.indexOf(data.scheme) !== -1 && map.subdomain.indexOf(data.subdomain) !== -1 && map.domain.indexOf(data.domain) !== -1 && map.tld.indexOf(data.tld) !== -1) {
+        data.valid = true;
+        console.log('valid');
+    }
 
     return data;
 }
