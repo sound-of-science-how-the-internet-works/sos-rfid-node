@@ -33,7 +33,9 @@ function readSerialData(data) {
 
 function sendUpdate() {
     let data = buildData();
-    console.log(data);
+    if (debug) {
+        console.log(data);
+    }
     data = JSON.stringify(data);
 
     const options = {
@@ -105,10 +107,14 @@ function buildData() {
         }
     });
 
-    console.log('ok ');
+    if (debug) {
+        console.log('ok ');
+    }
     if (map.scheme.indexOf(data.scheme) !== -1 && map.subdomain.indexOf(data.subdomain) !== -1 && map.domain.indexOf(data.domain) !== -1 && map.tld.indexOf(data.tld) !== -1) {
         data.valid = true;
-        console.log('valid');
+        if (debug) {
+            console.log('valid');
+        }
     }
 
     return data;
