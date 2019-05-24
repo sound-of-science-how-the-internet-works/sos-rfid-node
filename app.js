@@ -10,15 +10,20 @@ const socket = io('http://192.168.0.11:3030');
 const client = feathers();
 client.configure(socketio(socket));
 
-const debug = false;
+const debug = true;
+const debugReaders = false;
 
 const readers = [];
 
 let serverIsValid = false;
+let lockedState = false;
 
 client.service('states').on('patched', data => {
+    console.log('state updated', data);
     if (!serverIsValid && data.hasOwnProperty('panel') && data.hasOwnProperty('valid') && data.panel === 'server' && data.valid === true) {
-        serverIsValid = true;
+        console.log('server valid');
+        console.log('==========STATE UNLOCKED==========');
+        lockedState = false;
     }
 });
 
@@ -34,7 +39,7 @@ function readSerialData(data) {
         return;
     }
 
-    if (debug) {
+    if (debugReaders) {
         console.log('Reader: ' + reader);
         console.log('cardId: ' + cardId);
     }
@@ -48,7 +53,8 @@ function readSerialData(data) {
 }
 
 function sendUpdate() {
-    if (serverIsValid) {
+    if (lockedState) {
+        console.log('===========STATE IS LOCKED===========');
         return;
     }
     let data = buildData();
@@ -131,6 +137,7 @@ function buildData() {
     }
     if (map.scheme.indexOf(data.scheme) !== -1 && map.subdomain.indexOf(data.subdomain) !== -1 && map.domain.indexOf(data.domain) !== -1 && map.tld.indexOf(data.tld) !== -1) {
         data.valid = true;
+        lockedState = true;
         if (debug) {
             console.log('valid');
         }
