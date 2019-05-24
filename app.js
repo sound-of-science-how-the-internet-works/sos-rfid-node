@@ -2,61 +2,54 @@ let comPort;
 const SerialPort = require('serialport');
 const http = require('http');
 
-const feathers = require('@feathersjs/feathers');
-const socketio = require('@feathersjs/socketio-client');
-const io = require('socket.io-client');
-
-const socket = io('http://192.168.0.11:3030');
-const client = feathers();
-client.configure(socketio(socket));
-
 const debug = true;
 const debugReaders = false;
 
+let previousReaders = [];
 const readers = [];
 
-let serverIsValid = false;
-let lockedState = false;
+const allowedReaders = [0, 1, 2, 3];
 
-client.service('states').on('patched', data => {
-    console.log('state updated', data);
-    if (!serverIsValid && data.hasOwnProperty('panel') && data.hasOwnProperty('valid') && data.panel === 'server' && data.valid === true) {
-        console.log('server valid');
-        console.log('==========STATE UNLOCKED==========');
-        lockedState = false;
-    }
-});
 
 function readSerialData(data) {
     const parts = data.split('  ');
-    const reader = parts[0].trim();
+    const reader = parseInt(parts[0].trim());
     let cardId = '';
     if (parts.length === 2) {
         cardId = parts[1].trim();
     }
 
-    if (reader === undefined || reader === '' || cardId === undefined) {
+    if (reader === undefined || cardId === undefined || allowedReaders.indexOf(reader) === -1) {
         return;
     }
 
+    const oldId = readers[reader];
     if (debugReaders) {
         console.log('Reader: ' + reader);
         console.log('cardId: ' + cardId);
+        console.log('oldId: ' + oldId);
+        console.log('previousReaderId: ' + previousReaders[reader]);
     }
 
+    const oldCardId = previousReaders[reader];
+    previousReaders[reader] = readers[reader];
+    readers[reader] = cardId;
+    const firstChange = (cardId !== previousReaders[reader]);
 
-    if (!readers.hasOwnProperty(reader) || readers[reader] !== cardId) {
-        readers[reader] = cardId;
+    if (firstChange) {
+        if (debug) {
+            console.log('===============FIRST CHANGE, SO IGNORE===============');
+            return;
+        }
+    }
 
+    if (cardId === oldId && oldCardId !== cardId) {
+        console.log('update send');
         sendUpdate();
     }
 }
 
 function sendUpdate() {
-    if (lockedState) {
-        console.log('===========STATE IS LOCKED===========');
-        return;
-    }
     let data = buildData();
     if (debug) {
         console.log(data);
@@ -137,7 +130,6 @@ function buildData() {
     }
     if (map.scheme.indexOf(data.scheme) !== -1 && map.subdomain.indexOf(data.subdomain) !== -1 && map.domain.indexOf(data.domain) !== -1 && map.tld.indexOf(data.tld) !== -1) {
         data.valid = true;
-        lockedState = true;
         if (debug) {
             console.log('valid');
         }
@@ -148,19 +140,19 @@ function buildData() {
 
 function getConnectedArduino() {
     SerialPort.list(function (err, ports) {
-        var allports = ports.length;
-        var count = 0;
-        var done = false;
+        const portCount = ports.length;
+        let count = 0;
+        let done = false;
         ports.forEach(function (port) {
             count += 1;
-            pm = port['manufacturer'];
+            const pm = port['manufacturer'];
             if (typeof pm !== 'undefined' && pm.includes('arduino')) {
                 comPort = port.comName.toString();
                 console.log('Found arduino on port: ' + comPort);
                 done = true;
                 startListeningRfid();
             }
-            if (count === allports && done === false) {
+            if (count === portCount && done === false) {
                 console.log('cant find arduino');
             }
         });
