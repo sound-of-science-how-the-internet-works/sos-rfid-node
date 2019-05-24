@@ -2,9 +2,25 @@ let comPort;
 const SerialPort = require('serialport');
 const http = require('http');
 
+const feathers = require('@feathersjs/feathers');
+const socketio = require('@feathersjs/socketio-client');
+const io = require('socket.io-client');
+
+const socket = io('http://192.168.0.11:3030');
+const client = feathers();
+client.configure(socketio(socket));
+
 const debug = false;
 
 const readers = [];
+
+let serverIsValid = false;
+
+client.service('states').on('patched', data => {
+    if (!serverIsValid && data.hasOwnProperty('panel') && data.hasOwnProperty('valid') && data.panel === 'server' && data.valid === true) {
+        serverIsValid = true;
+    }
+});
 
 function readSerialData(data) {
     const parts = data.split('  ');
@@ -32,6 +48,9 @@ function readSerialData(data) {
 }
 
 function sendUpdate() {
+    if (serverIsValid) {
+        return;
+    }
     let data = buildData();
     if (debug) {
         console.log(data);
