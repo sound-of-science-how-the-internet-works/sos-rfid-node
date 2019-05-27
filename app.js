@@ -54,6 +54,7 @@ function sendUpdate() {
     if (debug) {
         console.log(data);
     }
+    const isValid = data.valid;
     data = JSON.stringify(data);
 
     const options = {
@@ -78,6 +79,41 @@ function sendUpdate() {
 
     req.write(data);
     req.end();
+
+    if (isValid === false) {
+        updateAllValids();
+    }
+}
+
+function updateAllValids() {
+    let data = {
+        valid: false,
+    };
+    data = JSON.stringify(data);
+    const options = {
+        hostname: '192.168.0.11',
+        port: 3030,
+        path: '/states',
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': data.length
+        }
+    };
+    const req = http.request(options, (res) => {
+        res.on('data', (d) => {
+            //process.stdout.write(d);
+        });
+    });
+
+    req.on('error', (error) => {
+        console.error(error);
+    });
+
+    req.write(data);
+    req.end();
+
+    console.log('=========resetAll=========');
 }
 
 function buildData() {
